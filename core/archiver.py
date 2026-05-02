@@ -42,8 +42,12 @@ async def process_archive(file_path: str, comp_mode: str, password: str, updater
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
-    await process.wait()
+    stdout, stderr = await process.communicate()
 
+    logging.info(f"[archiver] 7z returncode: {process.returncode}")
+    logging.info(f"[archiver] 7z stdout: {stdout.decode()}")
+    logging.info(f"[archiver] 7z stderr: {stderr.decode()}")
+    logging.info(f"[archiver] cmd: {' '.join(cmd)}")
     all_in_dir = os.listdir(dir_name)
     logging.info(f"[archiver] Files in dir: {all_in_dir}")
     logging.info(f"[archiver] Looking for prefix: {new_base}")
