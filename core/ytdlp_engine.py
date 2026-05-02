@@ -4,25 +4,9 @@ import uuid
 import re
 import glob
 from core.progress import ProgressUpdater
-
 async def download_media(url: str, quality: str, updater: ProgressUpdater, user_cookies: str = None):
     tmp_dir = "tmp_downloads"
     os.makedirs(tmp_dir, exist_ok=True)
-
-    cmd = ["yt-dlp", "--newline", "--no-warnings",
-       "--extractor-args", "youtube:player_client=web",
-       "--js-runtimes", "deno"]
-
-    cookies_file_to_delete = None
-    if user_cookies:
-        if os.path.isfile(user_cookies):
-            cmd.extend(["--cookies", user_cookies])
-        elif len(user_cookies.strip()) > 20:
-            cookies_file_to_delete = os.path.join(tmp_dir, f"cookies_{uuid.uuid4().hex[:6]}.txt")
-            with open(cookies_file_to_delete, "w", encoding="utf-8") as f:
-                f.write(user_cookies.strip())
-            cmd.extend(["--cookies", cookies_file_to_delete])
-
     if quality == "720p":
         ytdlp_args = ["-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best", "--merge-output-format", "mp4"]
     elif quality == "480p":
@@ -35,54 +19,60 @@ async def download_media(url: str, quality: str, updater: ProgressUpdater, user_
         ytdlp_args = ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
     file_id = uuid.uuid4().hex[:8]
     outtmpl = os.path.join(tmp_dir, f"{file_id}_%(title)s.%(ext)s")
-
-    cmd.extend(ytdlp_args)
-    cmd.extend(["-o", outtmpl, url])
-
+    cookies_file_to_delete = None
+    if user_cookies and not os.path.isfile(user_cookies) and len(user_cookies.strip()) > 20:
+        cookies_file_to_delete = os.path.join(tmp_dir, f"cookies_{uuid.uuid4().hex[:6]}.txt")
+        with open(cookies_file_to_delete, "w", encoding="utf-8") as f:
+            f.write(user_cookies.strip())
+        user_cookies = cookies_file_to_delete
+    async def run_ytdlp(with_cookies: bool) -> tuple[int, list[str]]:
+        cmd = ["yt-dlp", "--newline", "--no-warnings",
+               "--extractor-args", "youtube:player_client=android,web"]
+        if with_cookies and user_cookies and os.path.isfile(user_cookies) and os.path.getsize(user_cookies) > 50:
+            cmd.extend(["--cookies", user_cookies])
+        cmd.extend(ytdlp_args)
+        cmd.extend(["-o", outtmpl, url])
+        import logging
+        logging.info(f"[yt-dlp CMD]: {' '.join(cmd)}")
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT
+        )
+        regex_progress = re.compile(r'\[download\]\s+([0-9\.]+)%.*at\s+([0-9a-zA-Z\./]+)\s+ETA\s+([0-9:]+)')
+        all_output = []
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+            text = line.decode('utf-8', errors='ignore').strip()
+            all_output.append(text)
+            logging.info(f"[yt-dlp]: {text}")
+            match = regex_progress.search(text)
+            if match:
+                try:
+                    percent = float(match.group(1))
+                    speed = match.group(2)
+                    eta = match.group(3)
+                    updater.update_sync(percent, speed, eta)
+                except:
+                    pass
+        await process.wait()
+        return process.returncode, all_output
     updater.action_text = "Downloading Media"
-
-
-    import logging
-    logging.info(f"[yt-dlp CMD]: {' '.join(cmd)}")
-
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT
-    )
-
-    regex_progress = re.compile(r'\[download\]\s+([0-9\.]+)%.*at\s+([0-9a-zA-Z\./]+)\s+ETA\s+([0-9:]+)')
-
-    all_output = []
-
-    while True:
-        line = await process.stdout.readline()
-        if not line:
-            break
-
-        text = line.decode('utf-8', errors='ignore').strip()
-        all_output.append(text)
-        logging.info(f"[yt-dlp]: {text}")
-
-        match = regex_progress.search(text)
-        if match:
-            try:
-                percent = float(match.group(1))
-                speed = match.group(2)
-                eta = match.group(3)
-                updater.update_sync(percent, speed, eta)
-            except:
-                pass
-
-    await process.wait()
-
+    returncode, all_output = await run_ytdlp(with_cookies=True)
+    downloaded_files = glob.glob(os.path.join(tmp_dir, f"{file_id}_*"))
+    if not downloaded_files or returncode != 0:
+        import logging
+        logging.warning("[yt-dlp] Failed with cookies, retrying without cookies...")
+        updater.action_text = "Retrying without cookies"
+        updater.update_sync(5, "Retry...", "Wait")
+        returncode, all_output = await run_ytdlp(with_cookies=False)
+        downloaded_files = glob.glob(os.path.join(tmp_dir, f"{file_id}_*"))
     if cookies_file_to_delete and os.path.exists(cookies_file_to_delete):
         os.remove(cookies_file_to_delete)
-
-    downloaded_files = glob.glob(os.path.join(tmp_dir, f"{file_id}_*"))
     if downloaded_files:
         return downloaded_files[0]
     else:
-
         error_text = "\n".join(all_output[-10:])
         raise Exception(f"yt-dlp failed:\n{error_text}")
