@@ -10,6 +10,7 @@ from core.bunkr_engine import is_bunkr_url, download_bunkr
 from core.progress import ProgressUpdater
 from core.archiver import process_archive
 from github_integration.git_manager import push_to_github
+from config import YOUTUBE_COOKIES
 
 router = Router()
 class DownloadWorkflow(StatesGroup):
@@ -19,8 +20,7 @@ class DownloadWorkflow(StatesGroup):
 async def process_quality(callback: CallbackQuery, state: FSMContext):
     quality = callback.data.split("_")[1]
     await state.update_data(quality=quality)
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📄 Raw (No Zip)", callback_data="comp_raw")],[InlineKeyboardButton(text="📦 Zip (Max Compression)", callback_data="comp_zip")],[InlineKeyboardButton(text="🔐 Zip with Password", callback_data="comp_pass")]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📄 Raw (No Zip)", callback_data="comp_raw")],[InlineKeyboardButton(text="📦 Zip (Max Compression)", callback_data="comp_zip")],[InlineKeyboardButton(text="🔐 Zip with Password", callback_data="comp_pass")]
     ])
     await callback.message.edit_text("⚙️ **Quality selected!**\nHow should I process this?", reply_markup=keyboard, parse_mode="Markdown")
 
@@ -67,7 +67,7 @@ async def prepare_download_task(message: Message, state: FSMContext):
             if is_bunkr_url(url):
                 downloaded_file = await download_bunkr(url, updater)
             elif any(domain in url for domain in media_domains):
-                downloaded_file = await download_media(url, quality, updater, user.youtube_cookies)
+                downloaded_file = await download_media(url, quality, updater, YOUTUBE_COOKIES)
             else:
                 downloaded_file = await download_direct(url, updater)
 

@@ -60,6 +60,10 @@ BOT_TOKEN=123456789:YOUR_BOT_TOKEN_HERE
 
 # Database URI (SQLite is default)
 DB_URL=sqlite:///database/bot.db
+
+# YouTube Cookies (Optional but Recommended)
+# Paste the ENTIRE content of your cookies.txt file INSIDE double quotes
+YOUTUBE_COOKIES="paste_your_cookies_here"
 ```
 
 ## 🚀 Running the Bot
@@ -73,7 +77,6 @@ Open your bot in Telegram and use the following commands to get started:
 - `/start` - Initialize the bot.
 - `/set_token <PAT>` - Securely link your GitHub Personal Access Token. *(Requires `Contents: Write` permission).*
 - `/set_repo <username/repo>` - Set the target repository for uploading.
-- `/set_cookies` - Upload your YouTube `cookies.txt` file to bypass age restrictions and anti-bot blocks.
 - `/status` - Check your configuration status.
 
 > 💡 **Tip:** Just send any **URL** or **Telegram File** to the bot, choose your quality/compression settings via Inline Keyboards, and receive your direct raw links!
@@ -81,10 +84,21 @@ Open your bot in Telegram and use the following commands to get started:
 <hr/>
 
 ## 🍪 Setting Up YouTube Cookies (Optional but Recommended)
-YouTube often blocks automated downloads. To bypass this, you need to provide your browser cookies to the bot once:
+YouTube often blocks automated downloads. To bypass this, you can provide global cookies for your bot:
 
 1. **Install Browser Extension:** Install the `Get cookies.txt LOCALLY` extension on your PC browser:
    - [🌐 Chrome Web Store](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
    - [🌐 Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/get-cookies-txt-locally/)
-2. **Export Cookies:** Log in to YouTube (preferably with a secondary/burner account), click the extension icon, and select **Export As**. Save the `cookies.txt` file to your PC/Phone.
-3. **Send to Bot:** Send the `/set_cookies` command to your bot in Telegram, then upload the `cookies.txt` file as a document. The bot will securely save it in the database and use it for all future YouTube downloads.
+2. **Export Cookies:** Log in to YouTube (preferably with a secondary/burner account), click the extension icon, and select **Export As**. Save the `cookies.txt` file to your PC.
+3. **Add to `.env`:** Open your `.env` file and add the `YOUTUBE_COOKIES` variable. Paste the entire content of the file **inside double quotes (`""`)**.
+
+Example:
+```env
+BOT_TOKEN=123456789:YOUR_BOT_TOKEN_HERE
+DB_URL=sqlite:///database/bot.db
+
+YOUTUBE_COOKIES="# Netscape HTTP Cookie File
+.youtube.com    TRUE    /    TRUE    1745423871    LOGIN_INFO    ...
+(paste the rest of your cookie content here)"
+```
+4. **Restart the bot.** Now the bot will securely use this global cookie for all YouTube downloads!
