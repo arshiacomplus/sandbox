@@ -3,3 +3,5 @@ aiohttp>=3.9.0
 python-dotenv>=1.0.1
 SQLAlchemy>=2.0.25
 yt-dlp>=2024.3.10
+pyrogram>=2.0.106
+tgcrypto>=1.2.5

@@ -9,6 +9,9 @@ from handlers.callbacks import prepare_download_task
 from core.progress import ProgressUpdater
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton # <--- اینها را حتماً اینجا داشته باش
 from aiogram.fsm.context import FSMContext
+from config import TG_API_ID, TG_API_HASH, BOT_TOKEN
+from core.tg_downloader import download_large_tg_file
+
 router = Router()
 
 async def download_tg_file(bot, file_path: str, dest_path: str, updater: ProgressUpdater):
@@ -56,31 +59,56 @@ async def handle_file(message: Message, state: FSMContext):
         await message.answer("⚠️ Please set your token via /set_token first.")
         return
 
-
     if message.document:
         file_id = message.document.file_id
+        file_size = message.document.file_size or 0
         ext = os.path.splitext(message.document.file_name)[1] if message.document.file_name else ".file"
     elif message.video:
         file_id = message.video.file_id
+        file_size = message.video.file_size or 0
         ext = ".mp4"
     elif message.audio:
         file_id = message.audio.file_id
+        file_size = message.audio.file_size or 0
         ext = ".mp3"
     else:
         file_id = message.photo[-1].file_id
+        file_size = message.photo[-1].file_size or 0
         ext = ".jpg"
-
-    file_info = await message.bot.get_file(file_id)
-    os.makedirs("tmp_downloads", exist_ok=True)
-    local_name = f"tg_{uuid.uuid4().hex[:6]}{ext}"
-    file_path = os.path.join("tmp_downloads", local_name)
 
     status_msg = await message.answer("⬇️ **Downloading from Telegram...**", parse_mode="Markdown")
     updater = ProgressUpdater(status_msg, action_text="Fetching File")
+    os.makedirs("tmp_downloads", exist_ok=True)
 
     try:
-        await download_tg_file(message.bot, file_info.file_path, file_path, updater)
+        if file_size > 20 * 1024 * 1024:
+            if not TG_API_ID or not TG_API_HASH:
+                await status_msg.edit_text(
+                    "❌ **File too large!**\n\n"
+                    "Add `TG_API_ID` and `TG_API_HASH` to `.env` to enable large file support.\n"
+                    "Get them from [my.telegram.org](https://my.telegram.org)",
+                    parse_mode="Markdown"
+                )
+                return
+
+            file_path = await download_large_tg_file(
+                api_id=TG_API_ID,
+                api_hash=TG_API_HASH,
+                bot_token=BOT_TOKEN,
+                message_id=message.message_id,
+                chat_id=message.chat.id,
+                ext=ext,
+                updater=updater
+            )
+
+        else:
+            local_name = f"tg_{uuid.uuid4().hex[:6]}{ext}"
+            file_path = os.path.join("tmp_downloads", local_name)
+            file_info = await message.bot.get_file(file_id)
+            await download_tg_file(message.bot, file_info.file_path, file_path, updater)
+
         await status_msg.delete()
+
     except Exception as e:
         await status_msg.edit_text(f"❌ Error downloading: {str(e)}")
         return
