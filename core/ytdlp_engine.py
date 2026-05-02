@@ -22,16 +22,15 @@ async def download_media(url: str, quality: str, updater: ProgressUpdater, user_
             cmd.extend(["--cookies", cookies_file_to_delete])
 
     if quality == "720p":
-        ytdlp_args = ["-f", "bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=720]/best", "--merge-output-format", "mp4"]
+        ytdlp_args = ["-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best", "--merge-output-format", "mp4"]
     elif quality == "480p":
-        ytdlp_args = ["-f", "bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][height<=480]/best", "--merge-output-format", "mp4"]
+        ytdlp_args = ["-f", "bestvideo[height<=480]+bestaudio/best[height<=480]/best", "--merge-output-format", "mp4"]
     elif quality == "360p":
-        ytdlp_args = ["-f", "bestvideo[ext=mp4][height<=360]+bestaudio[ext=m4a]/best[ext=mp4][height<=360]/best", "--merge-output-format", "mp4"]
+        ytdlp_args = ["-f", "bestvideo[height<=360]+bestaudio/best[height<=360]/best", "--merge-output-format", "mp4"]
     elif quality == "audio":
         ytdlp_args = ["-x", "--audio-format", "mp3"]
     else:
-        ytdlp_args = ["--merge-output-format", "mp4"]
-
+        ytdlp_args = ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
     file_id = uuid.uuid4().hex[:8]
     outtmpl = os.path.join(tmp_dir, f"{file_id}_%(title)s.%(ext)s")
 
