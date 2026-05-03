@@ -136,8 +136,8 @@ YouTube may block downloads from server IPs. Providing cookies from a logged-in 
 > ⚠️ **Use a secondary/burner Google account** — never your main account.
 
 **Step 1 — Install the browser extension:**
-- [Chrome — Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
-- [Firefox — Get cookies.txt LOCALLY](https://addons.mozilla.org/en-US/firefox/addon/get-cookies-txt-locally/)
+-[Chrome — Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+-[Firefox — Get cookies.txt LOCALLY](https://addons.mozilla.org/en-US/firefox/addon/get-cookies-txt-locally/)
 
 **Step 2 — Export cookies:**
 Log in to YouTube, click the extension, and export as `cookies.txt`.
@@ -151,6 +151,28 @@ YOUTUBE_COOKIES=youtube_cookies.txt
 **Step 4 — Restart the bot.**
 
 > 💡 **Note:** The bot automatically retries without cookies if cookie-based download fails, so it works even if your cookies expire.
+
+---
+
+## 📦 How to Extract Split Zip Files (.zip.001, .zip.002)
+
+Since GitHub limits file sizes to 100MB, the bot splits large files into multiple parts (`.zip.001`, `.zip.002`, etc.). Here is how to easily extract them:
+
+### 📱 On Android (Termux)
+1. Install `p7zip`:
+   ```bash
+   pkg update
+   pkg install p7zip
+   ```
+2. Navigate to your download folder and extract the **first part** (it will automatically find and merge the rest of the parts):
+   ```bash
+   7z x your_file_name.zip.001
+   ```
+
+### 💻 On Windows / PC
+1. Download all parts (`.001`, `.002`, etc.) and put them in the **same folder**.
+2. Install [7-Zip](https://www.7-zip.org/) or [WinRAR](https://www.win-rar.com/).
+3. Right-click on the **`.zip.001`** file and select **Extract Here**.
 
 ---
 
